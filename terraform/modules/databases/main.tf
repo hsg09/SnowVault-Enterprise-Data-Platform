@@ -10,10 +10,6 @@ terraform {
   }
 }
 
-variable "environment" {
-  type = string
-}
-
 locals {
   env_suffix = var.environment == "prod" ? "" : "_${upper(var.environment)}"
 }
@@ -70,12 +66,3 @@ resource "snowflake_schema" "audit_schemas" {
   name     = each.key
 }
 
-# --- Outputs ---
-output "database_names" {
-  value = {
-    raw_vault      = snowflake_database.raw_vault.name
-    business_vault = snowflake_database.business_vault.name
-    analytics      = snowflake_database.analytics.name
-    audit          = snowflake_database.audit.name
-  }
-}

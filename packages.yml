@@ -5,7 +5,7 @@ packages:
 
   # Data Vault 2.0 automation (hubs, links, satellites, PITs, bridges)
   # https://github.com/ScalefreeCOM/datavault4dbt
-  - package: datavault-uk/dbtvault
+  - package: Datavault-UK/automate_dv
     version: [">=0.10.0", "<1.0.0"]
 
   # Advanced data quality tests (expect_column_values_to_be_between, etc.)

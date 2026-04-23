@@ -10,15 +10,6 @@ terraform {
   }
 }
 
-variable "environment" {
-  type = string
-}
-
-variable "allowed_ips" {
-  type    = list(string)
-  default = ["0.0.0.0/0"]
-}
-
 resource "snowflake_network_policy" "platform" {
   name            = "NP_${upper(var.environment)}_PLATFORM"
   allowed_ip_list = var.allowed_ips

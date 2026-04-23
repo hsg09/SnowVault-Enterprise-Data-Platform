@@ -10,10 +10,6 @@ terraform {
   }
 }
 
-variable "environment" {
-  type = string
-}
-
 locals {
   wh_size = var.environment == "prod" ? "MEDIUM" : "XSMALL"
 }

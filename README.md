@@ -127,7 +127,7 @@ git clone https://github.com/hsg09/data_vault_2_0.git && cd data_vault_2_0
 # 2. Install
 pip install -e ".[dev]"
 
-# 3. Configure
+# 3. Configure (See docs/infrastructure_setup.md for prerequisites)
 cp .env.example .env   # Edit with your Snowflake credentials
 
 # 4. Bootstrap Snowflake (scripts 00-14 in order)
@@ -173,6 +173,7 @@ dbt docs generate --profiles-dir . && dbt docs serve --profiles-dir .
 
 | Document | Content |
 |---|---|
+| [Infrastructure Setup](docs/infrastructure_setup.md) | Multi-cloud pre-requisites (Snowflake, S3, ADLS, GCP, Kafka, GitHub Secrets) |
 | [Architecture Guide](docs/architecture.md) | Full system architecture, decisions, and trade-offs |
 | [Data Vault 2.0 Guide](docs/data_vault_guide.md) | DV2.0 patterns, entity model, hashing strategy |
 | [Data Processing Walkthrough](docs/data_processing_walkthrough.md) | Step-by-step transformation guide from Source to Gold with sample data |

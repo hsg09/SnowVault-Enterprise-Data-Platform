@@ -10,10 +10,6 @@ terraform {
   }
 }
 
-variable "environment" {
-  type = string
-}
-
 # --- Functional Roles ---
 resource "snowflake_account_role" "roles" {
   for_each = toset([

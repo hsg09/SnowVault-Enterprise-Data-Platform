@@ -1,30 +1,29 @@
 # Data Processing & Transformation Walkthrough
-**Platform:** Multi-Cloud Snowflake Data Vault 2.0  
-**Scope:** Source systems through Bronze, Silver, Gold, and AI Semantic Layers.
 
-This document serves as the canonical guide demonstrating **exactly how and where data is transformed**, complete with logical diagrams, mechanical formulas, and rich tabular sample data detailing the exact lifecycle of records.
+## Executive Summary
+
+This walkthrough document serves as the canonical technical guide detailing **exactly how and where data is transformed**, providing clear mechanical logic, logical diagrams, and practical tabular sample data mapped across the Bronze, Silver, Gold, and Semantic AI Layers.
 
 ---
 
 ## 1. System Logical Flow Architecture
 
-This diagram illustrates the boundaries of the platform and the precise mechanisms moving data between layers.
+This diagram illustrates the macro-level boundaries of the processing environment and the mechanisms maneuvering data between the tiered layers.
 
 ```mermaid
 graph TD
-    %% Define Styles
     classDef bronze fill:#cd7f32,stroke:#333,stroke-width:1px,color:#fff;
     classDef silver fill:#c0c0c0,stroke:#333,stroke-width:1px,color:#000;
     classDef gold fill:#ffd700,stroke:#333,stroke-width:1px,color:#000;
     classDef ai fill:#6a0dad,stroke:#333,stroke-width:1px,color:#fff;
     
     subgraph "1. Ingestion Layer (Omnichannel)"
-        A1[Kafka / App DBs] -- Snowpipe Streaming --> B[(RAW_EVENTS)]
+        A1[Kafka / Op DBs] -- Snowpipe Streaming --> B[(RAW_EVENTS)]
         A2[AWS S3 / Azure ADLS] -- Auto-Ingest Snowpipe --> B
     end
 
-    subgraph "2. Bronze Layer (RAW_VAULT - Immutable)"
-        B -- dbt: Parse JSON & Hash --> C{{STG_ECOMMERCE_ORDERS}}
+    subgraph "2. Bronze Layer (RAW_VAULT)"
+        B -- "dbt: Parse JSON & Hash" --> C{{STG_ECOMMERCE_ORDERS}}
         C -- Unique Insert --> D1[(HUB_CUSTOMER)]:::bronze
         C -- Unique Insert --> D2[(HUB_ORDER)]:::bronze
         C -- Unique Combos --> D3[(LINK_CUSTOMER_ORDER)]:::bronze
@@ -61,15 +60,15 @@ graph TD
 
 ## 2. Walkthrough Scenario & Sample Data
 
-We will track two users across two days to demonstrate ingestion, normalization, and SCD Type 2 history tracking.
+We will practically track two user entities across two simulated timeline days to definitively demonstrate ingestion, normalization, and SCD Type 2 historic preservation.
 
 * **Day 1**: Alice (`C100`) buys a mouse; Bob (`C200`) buys a keyboard.
-* **Day 2**: Alice upgrades her loyalty tier to `PLATINUM` and changes her email.
+* **Day 2**: Alice upgrades her loyalty tier to `PLATINUM` and changes her email address.
 
-### Step 1: Ingestion (RAW_EVENTS)
+### Step 1: Immutable Ingestion (RAW_EVENTS)
 **Location:** `RAW_VAULT.ECOMMERCE.RAW_EVENTS`  
-**Tooling:** Snowpipe Streaming Kafka Connector / AWS S3 Auto-Ingest.  
-**Transformation applied:** None. Strict schema-on-read. Data is immutable.
+**Tooling:** Snowpipe Streaming / AWS S3 Auto-Ingest  
+**Transformation:** Strictly none. Data is structurally immutable.
 
 | EVENT_ID | INGESTED_AT | SOURCE | RAW_JSON_PAYLOAD |
 |---|---|---|---|
@@ -79,17 +78,17 @@ We will track two users across two days to demonstrate ingestion, normalization,
 
 ---
 
-### Step 2: Staging & Hashing (dbt views)
+### Step 2: Staging & Key Generation (Views)
 **Location:** `RAW_VAULT.STAGING.STG_ECOMMERCE_ORDERS`  
-**Tooling:** dbt models relying on `dbt_utils.generate_surrogate_key`.  
-**Transformation applied:** 
-1. `PARSE_JSON` to flatten payloads.
-2. Typecasting (`::VARCHAR`, `::FLOAT`).
-3. Hash String Generation.
+**Tooling:** Standard dbt models via `dbt_utils.generate_surrogate_key`  
+**Transformation Applied:** 
+1. `PARSE_JSON` to structurally flatten incoming variant payloads.
+2. Hard Typecasting (e.g., `::VARCHAR`, `::FLOAT`).
+3. SHA-256 Hash String Object Generation.
 
-**How Hashing Works:**
-* **HK_CUSTOMER (Hash Key):** `SHA256(COALESCE(UPPER(TRIM(customer_id)), ''))`
-* **HD_CUST_DEMO (Hash Diff - Demographics):** `SHA256(COALESCE(UPPER(TRIM(loyalty_tier)), '^^'))` *(Where `^^` is a null-handling sentinel)*
+**How Hashing Mathematically Operates:**
+- **HK_CUSTOMER (Hash Key):** `SHA256(COALESCE(UPPER(TRIM(customer_id)), ''))`
+- **HD_CUST_DEMO (Hash Diff - Demographics):** `SHA256(COALESCE(UPPER(TRIM(loyalty_tier)), '^^'))` *(Where `^^` operates as a rigid null-handling sentinel string).*
 
 | EVENT_ID | CUSTOMER_ID | EMAIL | TIER | HK_CUSTOMER | HD_CUST_DETAILS | HD_CUST_DEMO |
 |---|---|---|---|---|---|---|
@@ -97,94 +96,98 @@ We will track two users across two days to demonstrate ingestion, normalization,
 | `e02` (D1) | C200 | bob@m.com | SILVER | `9z8y7x` | `p1q2r3` | `w9x8y7` |
 | `e03` (D2) | C100 | alice_new... | PLATINUM | `1a2b3c` | `a7b8c9` | `j4k5l6` |
 
-> *Notice: In `e03`, Alice's `HK_CUSTOMER` remains `1a2b3c` because her ID didn't change, but her Hash Diffs physically changed because her payload values changed.*
+> [!NOTE]  
+> Notice that in `e03` (Day 2), Alice's `HK_CUSTOMER` uniquely remains **`1a2b3c`** because her business identifier did not change. However, her respective Hash Diffs mathematically changed because her physical payload variables shifted.
 
 ---
 
-### Step 3: Bronze Layer Data Vault Splitting
+### Step 3: Bronze Layer Data Vault Normalization
 **Location:** `RAW_VAULT.RAW_VAULT.*`  
-**Tooling:** dbt incremental models.
+**Tooling:** dbt incremental loading paradigms.
 
-#### Hubs (Entities)
-**Rule:** Only insert if `HK` is completely new. No duplicates allowed.  
-*On Day 1, Alice and Bob are inserted. On Day 2, `e03` is IGNORED because `1a2b3c` already exists.*
+#### Hubs (Core Entities)
+**Rule:** Only fundamentally insert real records if the `HK` is unequivocally new.
 
 | HK_CUSTOMER | CUSTOMER_ID | LOAD_DATETIME | RECORD_SOURCE |
 |---|---|---|---|
 | `1a2b3c` | C100 | `2026-04-23 10:00` | Kafka |
 | `9z8y7x` | C200 | `2026-04-23 10:05` | Kafka |
 
-#### Links (Relationships)
-**Rule:** Unique combination of interacting Hub Hash Keys.
+> *On Day 2, record `e03` is IGNORED by the Hub process entirely because the Hash Key `1a2b3c` is already populated.*
+
+#### Links (Transactional Relationships)
+**Rule:** Define a single unique permutation of interacting Hub Hash Keys.
 
 | HK_LINK_CUST_ORD | HK_CUSTOMER | HK_ORDER | LOAD_DATETIME |
 |---|---|---|---|
 | `a1b2c3` | `1a2b3c` (Alice) | `9f8e7d` (O999) | `2026-04-23 10:00` |
 | `d4e5f6` | `9z8y7x` (Bob) | `5a4b3c` (O555) | `2026-04-23 10:05` |
 
-#### Satellites (SCD Type 2 History)
-**Rule:** Insert new record ONLY if the incoming `HASH_DIFF` does not match the latest `HASH_DIFF` for that `HK_CUSTOMER`.
+#### Satellites (SCD Type 2 Historization)
+**Rule:** Insert a new row ONLY if the incoming `HASH_DIFF` fundamentally mis-aligns with the absolute latest historical `HASH_DIFF` belonging functionally to that `HK_CUSTOMER`.
 
-**SAT_CUSTOMER_DETAILS** (High-Velocity changes like Email)
+**SAT_CUSTOMER_DETAILS** (High-Velocity attribute group)
 
 | HK_CUSTOMER | LOAD_DATETIME | HASH_DIFF | FIRST_NAME | EMAIL | STATUS |
 |---|---|---|---|---|---|
-| `1a2b3c` | `2026-04-23 10:00` | `x9y8z7` | Alice | ali@m.com | *Active on Day 1* |
-| `9z8y7x` | `2026-04-23 10:05` | `p1q2r3` | Bob | bob@m.com | *Active on Day 1* |
-| `1a2b3c` | `2026-04-24 09:00` | `a7b8c9` | Alice | **alice_new@m.com** | *Inserted on Day 2 due to Hash Diff mismatch!* |
+| `1a2b3c` | `2026-04-23 10:00` | `x9y8z7` | Alice | ali@m.com | *Active as of Day 1* |
+| `9z8y7x` | `2026-04-23 10:05` | `p1q2r3` | Bob | bob@m.com | *Active as of Day 1* |
+| `1a2b3c` | `2026-04-24 09:00` | `a7b8c9` | Alice | **alice_new@m.com** | *Inserted Day 2 (Hash Diff trigger)* |
 
-**SAT_CUSTOMER_DEMOGRAPHICS** (Low-Velocity changes like Tier)
+**SAT_CUSTOMER_DEMOGRAPHICS** (Low-Velocity attribute group)
 
 | HK_CUSTOMER | LOAD_DATETIME | HASH_DIFF | LOYALTY_TIER | STATUS |
 |---|---|---|---|---|
-| `1a2b3c` | `2026-04-23 10:00` | `m1n2o3` | GOLD | *Active on Day 1* |
-| `9z8y7x` | `2026-04-23 10:05` | `w9x8y7` | SILVER | *Active on Day 1* |
-| `1a2b3c` | `2026-04-24 09:00` | `j4k5l6` | **PLATINUM** | *Inserted on Day 2 due to Hash Diff mismatch!* |
+| `1a2b3c` | `2026-04-23 10:00` | `m1n2o3` | GOLD | *Active as of Day 1* |
+| `9z8y7x` | `2026-04-23 10:05` | `w9x8y7` | SILVER | *Active as of Day 1* |
+| `1a2b3c` | `2026-04-24 09:00` | `j4k5l6` | **PLATINUM** | *Inserted Day 2 (Hash Diff trigger)* |
 
 ---
 
-### Step 4: Silver Layer Point-in-Time (PIT) Optimization
+### Step 4: Silver Layer PIT Construction Optimization
 **Location:** `BUSINESS_VAULT.PIT_TABLES.*`  
-**Tooling:** Snowflake Dynamic Tables.  
-**Transformation:** A standard Data Vault requires massive `JOIN` operations across satellites to find the "active" record at a point in time. The `DYN_PIT_CUSTOMER` table autonomously manages pointers mapping a Hub to the exact temporal timestamp of its satellites.
+**Tooling:** Snowflake Dynamic Tables (Real-time updates)  
+**Transformation Phase Goal:** Traditional DV structures require computationally massive `JOIN` operations across myriad satellites to find an "active" historical slice. The `DYN_PIT_CUSTOMER` resolves this by autonomously maintaining discrete pointers structurally aligning universally disparate load times.
 
-**DYN_PIT_CUSTOMER** (After Day 2 updates are processed)
+**DYN_PIT_CUSTOMER** (After Day 2 Updates)
 
 | HK_CUSTOMER | CUSTOMER_ID | PIT_LOAD_DATETIME | SAT_DETAILS_LOAD_DT | SAT_DEMO_LOAD_DT |
 |---|---|---|---|---|
 | `1a2b3c` (Alice)| C100 | `2026-04-24 09:10` | `2026-04-24 09:00` *(Points to new email)* | `2026-04-24 09:00` *(Points to PLATINUM)* |
-| `9z8y7x` (Bob)  | C200 | `2026-04-24 09:10` | `2026-04-23 10:05` | `2026-04-23 10:05` |
+| `9z8y7x` (Bob)  | C200 | `2026-04-24 09:10` | `2026-04-23 10:05` *(Same pointer)* | `2026-04-23 10:05` *(Same pointer)* |
 
 ---
 
-### Step 5: Gold Layer (Data Products & Security)
+### Step 5: Gold Layer Analytics Output
 **Location:** `ANALYTICS.SECURE_VIEWS.*`  
-**Tooling:** Snowflake Secure Views mapped via Terraform RBAC.  
-**Transformation:** Denormalization into wide tables for human BI consumption. Dynamic Data Masking policies enforce security rules exactly at query-time.
+**Tooling:** Snowflake Secure Views controlled by native RBAC boundaries.  
+**Transformation Phase Goal:** Wide, heavily denormalized output specifically organized for downstream human visualization and general purpose reporting queries.
 
-**DP_CUSTOMER_360** (When queried by a BI tool using `ANALYST` role)
+**DP_CUSTOMER_360** (Queried explicitly by the `ANALYST` role)
 
 | CUSTOMER_ID | FIRST_NAME | EMAIL | LOYALTY_TIER | LIFETIME_REVENUE |
 |---|---|---|---|---|
 | C100 | Alice | a\*\*\*@m.com | PLATINUM | 25.0 |
 | C200 | Bob | b\*\*\*@m.com | SILVER | 90.0 |
 
-> *Note: By querying this view, the engine looks at the PIT table, grabs the exact satellite keys, performs O(1) lookups against the Satellites, aggregates the `SAT_ORDER_FINANCIALS` associated with the Link table, and passes the Email through the `MASK_EMAIL` governance policy.*
+> [!TIP]
+> **Mechanics under the hood:**  
+> When the `ANALYST` role executes a query on this view, the Snowflake optimizer reads the indexed PIT framework, generates hyper-fast `O(1)` index reads spanning the Satellite tables, performs aggregations functionally from the transaction Links, and strictly masks protected properties dynamically via `MASK_EMAIL` before any result output displays to the UI layer.
 
 ---
 
 ### Step 6: Semantic AI & ML Feature Store
 **Location:** `ANALYTICS.SEMANTIC_VIEWS.*`  
-**Tooling:** Snowpark Python UDFs & Snowflake Cortex LLMs.  
-**Transformation:** The Data Platform enriches raw analytics with Artificial Intelligence instantaneously, without pipelines extracting data to external systems.
+**Tooling:** Snowpark Python Contexts & Snowflake Cortex LLMs  
+**Transformation Process:** Rather than exporting heavy extraction loads to an outside generic ML tool, advanced analytics models run actively within Snowflake compute parameters natively against Gold data.
 
-**DYN_FEATURE_STORE_CUSTOMER** (Refreshes hourly via Native Scheduling)
+**DYN_FEATURE_STORE_CUSTOMER**
 
 | CUSTOMER_ID | TIER | FEATURE_LIFETIME_REV | PREDICTED_CLV *(Snowpark ML)* | AI_CUSTOMER_CLASS *(Cortex LLM)*| AI_SUMMARY *(Cortex LLM)* |
 |---|---|---|---|---|---|
-| C100 | PLATINUM | 25.0 | **315.50** | `GROWTH` | "Alice is in segment PLATINUM..."|
-| C200 | SILVER | 90.0 | **110.20** | `AT_RISK` | "Bob is in segment SILVER with..."|
+| C100 | PLATINUM | 25.0 | **315.50** | `GROWTH` | "Alice's recent upgrade categorizes..."|
+| C200 | SILVER | 90.0 | **110.20** | `AT_RISK` | "Bob possesses a low-growth projection..."|
 
-**Underlying mechanics:**
-1. **PREDICT_CLV:** A Python 3.11 UDF (compiled as a secure Sandbox in Snowflake) receives `(LIFETIME_REVENUE, TIER)`, runs a BG/NBD probability equation using `numpy`, and returns a float. 
-2. **AI_CUSTOMER_CLASS:** `SNOWFLAKE.CORTEX.CLASSIFY_TEXT` is invoked natively, utilizing an LLM to categorize the unstructured context string generated by the user's current status and history into a precise segment array.
+**Underlying AI Operations:**
+1. **PREDICT_CLV:** A Python 3.11 User-Defined Function (operating isolated within a secure Snowflake Sandboxed framework) structurally receives `(LIFETIME_REVENUE, TIER)`, runs a BG/NBD probability generation algorithm utilizing `numpy`, and outputs a predicted financial yield `FLOAT`.
+2. **AI_CUSTOMER_CLASS:** The `SNOWFLAKE.CORTEX.CLASSIFY_TEXT` primitive is natively invoked, executing a zero-shot LLM prompt against concatenated historical context text strings to effectively assign an accurate categorical segment parameter.

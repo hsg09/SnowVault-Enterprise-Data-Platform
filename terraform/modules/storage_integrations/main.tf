@@ -11,25 +11,6 @@ terraform {
   }
 }
 
-variable "environment" {
-  type = string
-}
-
-variable "aws_s3_role_arn" {
-  type    = string
-  default = ""
-}
-
-variable "azure_tenant_id" {
-  type    = string
-  default = ""
-}
-
-variable "gcs_allowed_locations" {
-  type    = list(string)
-  default = []
-}
-
 # =============================================================================
 # Pipeline 1: AWS S3 Storage Integration
 # =============================================================================
@@ -93,11 +74,3 @@ resource "snowflake_storage_integration" "gcs_raw" {
   comment = "Pipeline 3: GCP GCS — Tertiary data lake (service account)"
 }
 
-# --- Outputs ---
-output "integration_names" {
-  value = {
-    s3   = var.aws_s3_role_arn != "" ? "S3_RAW_INTEGRATION" : null
-    adls = var.azure_tenant_id != "" ? "ADLS_RAW_INTEGRATION" : null
-    gcs  = length(var.gcs_allowed_locations) > 0 ? "GCS_RAW_INTEGRATION" : null
-  }
-}
