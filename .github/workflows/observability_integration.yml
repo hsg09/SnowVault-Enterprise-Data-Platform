@@ -109,7 +109,15 @@ jobs:
           from cryptography.hazmat.primitives import serialization
           from cryptography.hazmat.backends import default_backend
 
+          if not os.environ.get("SNOWFLAKE_ACCOUNT") or not os.environ.get("SNOWFLAKE_USER"):
+              print("⚠️  Snowflake credentials not populated in GitHub Secrets - skipping observability DB check.")
+              exit(0)
+
           key_path = os.environ["SNOWFLAKE_PRIVATE_KEY_PATH"]
+          if not os.path.exists(key_path) or os.path.getsize(key_path) == 0:
+              print("⚠️  Snowflake private key missing or empty - skipping observability DB check.")
+              exit(0)
+
           with open(key_path, "rb") as f:
               private_key_pem = f.read()
 
