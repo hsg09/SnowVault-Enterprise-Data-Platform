@@ -1,0 +1,65 @@
+# =============================================================================
+# .gitignore — Data Vault 2.0 Snowflake Data Platform
+# =============================================================================
+
+# ---- dbt ----
+target/
+dbt_packages/
+dbt_modules/
+logs/
+*.log
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ---- Environment ----
+.env
+.env.local
+*.local
+
+# ---- Terraform ----
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.backup
+terraform/**/*.tfplan
+terraform/**/.terraform.lock.hcl
+*.auto.tfvars
+
+# ---- Airflow ----
+airflow/airflow.db
+airflow/airflow.db-shm
+airflow/airflow.db-wal
+airflow/airflow.cfg
+airflow/logs/
+airflow/simple_auth_manager_passwords.json.generated
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ---- Secrets ----
+*.pem
+*.key
+*.p12
+*_rsa
+*_dsa
+*.crt
+
+# ---- Package managers ----
+uv.lock
+node_modules/
+package-lock.json
+
+# ---- Misc ----
+.user.yml

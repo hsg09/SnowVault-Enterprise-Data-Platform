@@ -1,0 +1,21 @@
+country_code,country_name,region,sub_region
+US,United States,Americas,Northern America
+GB,United Kingdom,Europe,Northern Europe
+DE,Germany,Europe,Western Europe
+FR,France,Europe,Western Europe
+CA,Canada,Americas,Northern America
+AU,Australia,Oceania,Australia and New Zealand
+JP,Japan,Asia,Eastern Asia
+IN,India,Asia,Southern Asia
+BR,Brazil,Americas,South America
+MX,Mexico,Americas,Central America
+IT,Italy,Europe,Southern Europe
+ES,Spain,Europe,Southern Europe
+NL,Netherlands,Europe,Western Europe
+SE,Sweden,Europe,Northern Europe
+NO,Norway,Europe,Northern Europe
+DK,Denmark,Europe,Northern Europe
+FI,Finland,Europe,Northern Europe
+IE,Ireland,Europe,Northern Europe
+SG,Singapore,Asia,South-Eastern Asia
+NZ,New Zealand,Oceania,Australia and New Zealand

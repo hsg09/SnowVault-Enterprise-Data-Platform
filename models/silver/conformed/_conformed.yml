@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: conformed_customers
+    description: >
+      Conformed customer record — flattened from hub, satellites, and
+      business vault into a single denormalized view for Gold consumption.
+    columns:
+      - name: HK_CUSTOMER
+        tests:
+          - unique
+          - not_null
+      - name: CUSTOMER_ID
+        tests:
+          - unique
+          - not_null
+
+  - name: conformed_orders
+    description: >
+      Conformed order record — flattened from hub, satellites, link,
+      and business vault lifecycle into a denormalized view.
+    columns:
+      - name: HK_ORDER
+        tests:
+          - unique
+          - not_null
+      - name: ORDER_ID
+        tests:
+          - unique
+          - not_null

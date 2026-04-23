@@ -1,0 +1,185 @@
+# =============================================================================
+# dbt Project Configuration — Data Vault 2.0 Snowflake Data Platform
+#
+# Architecture:
+#   Bronze (Raw Vault)  → Hubs, Links, Satellites (incremental, insert-only)
+#   Silver (Business Vault) → PIT tables, Bridge tables, Business Vault (incremental)
+#   Gold (Analytics)    → Facts, Dimensions, Aggregates (table / incremental)
+# =============================================================================
+
+name: 'snowvault_enterprise'
+version: '1.0.0'
+config-version: 2
+
+profile: 'snowvault_enterprise'
+
+# ---------------------------------------------------------------------------
+# Directory Layout
+# ---------------------------------------------------------------------------
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+asset-paths: ["assets"]
+
+# ---------------------------------------------------------------------------
+# Build Artifacts
+# ---------------------------------------------------------------------------
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+# ---------------------------------------------------------------------------
+# Global Variables
+# ---------------------------------------------------------------------------
+vars:
+  # ---- Data Vault 2.0 Settings ----
+  hash_algorithm: "SHA2_BINARY"        # SHA-256 for production-grade collision resistance
+  hash_output_type: "VARCHAR(64)"      # Hex-encoded SHA-256 output (64 chars)
+  ghost_record_hash_key: "0000000000000000000000000000000000000000000000000000000000000000"
+  ghost_record_date: "1900-01-01"
+
+  # ---- Load Metadata Columns ----
+  load_datetime_column: "LOAD_DATETIME"
+  record_source_column: "RECORD_SOURCE"
+  applied_date_column: "APPLIED_DATE"
+
+  # ---- Database References ----
+  raw_vault_database: "{{ env_var('SNOWFLAKE_DATABASE', 'RAW_VAULT') }}"
+  business_vault_database: "BUSINESS_VAULT"
+  analytics_database: "ANALYTICS"
+  audit_database: "AUDIT"
+
+  # ---- Incremental Settings ----
+  incremental_lookback_days: 3        # Lookback window for incremental loads
+
+  # ---- Environment Flag ----
+  environment: "{{ env_var('DBT_TARGET', 'dev') }}"
+
+# ---------------------------------------------------------------------------
+# Model Configurations — Per Layer
+# ---------------------------------------------------------------------------
+models:
+  snowvault_enterprise:
+
+    # ---- BRONZE: Raw Vault (Data Vault 2.0) ----
+    bronze:
+      +schema: "raw_vault"
+      +database: "{{ var('raw_vault_database') }}"
+      +tags: ["bronze", "data_vault"]
+
+      staging:
+        +materialized: "view"
+        +tags: ["staging"]
+
+      hubs:
+        +materialized: "incremental"
+        +incremental_strategy: "append"
+        +on_schema_change: "fail"
+        +tags: ["hub"]
+
+      links:
+        +materialized: "incremental"
+        +incremental_strategy: "append"
+        +on_schema_change: "fail"
+        +tags: ["link"]
+
+      satellites:
+        +materialized: "incremental"
+        +incremental_strategy: "append"
+        +on_schema_change: "fail"
+        +tags: ["satellite"]
+
+      effectivity_satellites:
+        +materialized: "incremental"
+        +incremental_strategy: "append"
+        +tags: ["effectivity_satellite"]
+
+    # ---- SILVER: Business Vault ----
+    silver:
+      +schema: "business_vault"
+      +database: "{{ var('business_vault_database') }}"
+      +tags: ["silver", "business_vault"]
+
+      business_vault:
+        +materialized: "incremental"
+        +incremental_strategy: "merge"
+        +tags: ["business_vault"]
+
+      pit_tables:
+        +materialized: "incremental"
+        +incremental_strategy: "merge"
+        +tags: ["pit"]
+
+      bridge_tables:
+        +materialized: "incremental"
+        +incremental_strategy: "merge"
+        +tags: ["bridge"]
+
+      conformed:
+        +materialized: "table"
+        +tags: ["conformed"]
+
+    # ---- GOLD: Analytics / Reporting ----
+    gold:
+      +schema: "analytics"
+      +database: "{{ var('analytics_database') }}"
+      +tags: ["gold", "analytics"]
+
+      facts:
+        +materialized: "incremental"
+        +incremental_strategy: "merge"
+        +tags: ["fact"]
+
+      dimensions:
+        +materialized: "table"
+        +tags: ["dimension"]
+
+      aggregates:
+        +materialized: "table"
+        +tags: ["aggregate"]
+
+      secure_views:
+        +materialized: "view"
+        +tags: ["secure_view"]
+
+# ---------------------------------------------------------------------------
+# Seed Configuration
+# ---------------------------------------------------------------------------
+seeds:
+  snowvault_enterprise:
+    +schema: "reference_data"
+    +database: "{{ var('analytics_database') }}"
+    +quote_columns: true
+    +tags: ["seed", "reference_data"]
+
+# ---------------------------------------------------------------------------
+# Snapshot Configuration
+# ---------------------------------------------------------------------------
+snapshots:
+  snowvault_enterprise:
+    +schema: "snapshots"
+    +database: "{{ var('raw_vault_database') }}"
+    +strategy: "timestamp"
+    +updated_at: "LOAD_DATETIME"
+    +tags: ["snapshot"]
+
+# ---------------------------------------------------------------------------
+# Test Configuration
+# ---------------------------------------------------------------------------
+tests:
+  snowvault_enterprise:
+    +severity: "warn"
+    +store_failures: true
+    +schema: "dq_results"
+    +database: "{{ var('audit_database') }}"
+
+# ---------------------------------------------------------------------------
+# Dispatch — override dbt_utils with package-specific implementations
+# ---------------------------------------------------------------------------
+dispatch:
+  - macro_namespace: dbt_utils
+    search_order: ['snowvault_enterprise', 'dbt_utils']

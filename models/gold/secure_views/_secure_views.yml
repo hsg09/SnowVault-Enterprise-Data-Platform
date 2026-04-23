@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: secure_customer_profiles
+    description: >
+      Secure view for external BI consumers. PII columns inherit
+      table-level masking policies. Uses Snowflake SECURE VIEW.
+    columns:
+      - name: CUSTOMER_SK
+        tests: [not_null]
+      - name: CUSTOMER_ID
+        tests: [not_null]

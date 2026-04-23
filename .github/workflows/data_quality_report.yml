@@ -1,0 +1,176 @@
+# =============================================================================
+# data_quality_report.yml — Scheduled DQ Summary Report
+# Data Vault 2.0 Snowflake Data Platform
+#
+# PURPOSE:
+#   Weekly data quality trend report:
+#   - Query DQ_TEST_RESULTS for pass/fail trends
+#   - Generate summary statistics
+#   - Create GitHub Issues for persistent failures
+#
+# SCHEDULE: Every Monday at 08:00 UTC
+# =============================================================================
+
+name: Data Quality Report
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 08:00 UTC
+
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+  SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+  SNOWFLAKE_ROLE: DATA_ENGINEER
+  SNOWFLAKE_WAREHOUSE: DEV_WH
+  SNOWFLAKE_DATABASE: AUDIT
+  PYTHON_VERSION: '3.11'
+
+jobs:
+
+  dq_report:
+    name: 📊 Data Quality Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install snowflake-connector-python tabulate cryptography
+
+      - name: Generate DQ Report
+        id: report
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from datetime import datetime
+          import snowflake.connector
+          from tabulate import tabulate
+
+          # Connect to Snowflake (RSA key-pair authentication)
+          from cryptography.hazmat.primitives import serialization
+          from cryptography.hazmat.backends import default_backend
+
+          private_key_pem = os.environ["SNOWFLAKE_PRIVATE_KEY"].encode()
+          passphrase = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE", "").encode() or None
+          p_key = serialization.load_pem_private_key(
+              private_key_pem, password=passphrase, backend=default_backend()
+          )
+          pkb = p_key.private_bytes(
+              encoding=serialization.Encoding.DER,
+              format=serialization.PrivateFormat.PKCS8,
+              encryption_algorithm=serialization.NoEncryption(),
+          )
+
+          conn = snowflake.connector.connect(
+              account=os.environ["SNOWFLAKE_ACCOUNT"],
+              user=os.environ["SNOWFLAKE_USER"],
+              private_key=pkb,
+              role=os.environ["SNOWFLAKE_ROLE"],
+              warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
+              database=os.environ["SNOWFLAKE_DATABASE"],
+          )
+          cur = conn.cursor()
+
+          # Summary by status (last 7 days)
+          cur.execute("""
+              SELECT
+                  STATUS,
+                  COUNT(*) AS TEST_COUNT,
+                  SUM(FAILURES_COUNT) AS TOTAL_FAILURES,
+                  AVG(EXECUTION_TIME_SEC) AS AVG_EXEC_TIME
+              FROM DQ_RESULTS.DQ_TEST_RESULTS
+              WHERE EXECUTED_AT >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+              GROUP BY STATUS
+              ORDER BY STATUS
+          """)
+          summary = cur.fetchall()
+
+          # Top failing models (last 7 days)
+          cur.execute("""
+              SELECT
+                  MODEL_NAME,
+                  TEST_NAME,
+                  COUNT(*) AS FAILURE_COUNT,
+                  MAX(EXECUTED_AT) AS LAST_FAILURE
+              FROM DQ_RESULTS.DQ_TEST_RESULTS
+              WHERE STATUS = 'FAIL'
+                AND EXECUTED_AT >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+              GROUP BY MODEL_NAME, TEST_NAME
+              ORDER BY FAILURE_COUNT DESC
+              LIMIT 10
+          """)
+          top_failures = cur.fetchall()
+
+          # Build report
+          report = f"# 📊 Data Quality Report — Week of {datetime.now().strftime('%Y-%m-%d')}\n\n"
+          report += "## Summary (Last 7 Days)\n\n"
+
+          if summary:
+              report += tabulate(
+                  summary,
+                  headers=["Status", "Tests", "Failures", "Avg Time (s)"],
+                  tablefmt="github"
+              )
+          else:
+              report += "No test results found.\n"
+
+          report += "\n\n## Top Failing Models\n\n"
+
+          if top_failures:
+              report += tabulate(
+                  top_failures,
+                  headers=["Model", "Test", "Failures", "Last Failure"],
+                  tablefmt="github"
+              )
+          else:
+              report += "✅ No failures detected!\n"
+
+          # Write to file for artifact upload
+          with open("dq_report.md", "w") as f:
+              f.write(report)
+
+          # Set output for issue creation
+          has_failures = len(top_failures) > 0
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"has_failures={'true' if has_failures else 'false'}\n")
+              f.write(f"failure_count={len(top_failures)}\n")
+
+          print(report)
+
+          cur.close()
+          conn.close()
+          EOF
+
+      - name: Upload DQ Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dq-report-${{ github.run_id }}
+          path: dq_report.md
+          retention-days: 90
+
+      # Create GitHub Issue if there are persistent failures
+      - name: Create Issue for Failures
+        if: steps.report.outputs.has_failures == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('dq_report.md', 'utf8');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[DQ Alert] ${new Date().toISOString().split('T')[0]} — Data Quality Failures Detected`,
+              body: report,
+              labels: ['data-quality', 'automated']
+            });

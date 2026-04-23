@@ -1,0 +1,26 @@
+version: 2
+
+seeds:
+  - name: country_codes
+    description: "ISO 3166-1 alpha-2 country codes with regional classification"
+    columns:
+      - name: country_code
+        tests: [unique, not_null]
+
+  - name: order_status_mapping
+    description: "Order status codes with lifecycle categorization"
+    columns:
+      - name: order_status_code
+        tests: [unique, not_null]
+
+  - name: payment_methods
+    description: "Payment method reference data"
+    columns:
+      - name: payment_method_code
+        tests: [unique, not_null]
+
+  - name: product_categories
+    description: "Product category hierarchy"
+    columns:
+      - name: category_id
+        tests: [unique, not_null]

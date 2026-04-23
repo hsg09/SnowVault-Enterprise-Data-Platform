@@ -1,0 +1,11 @@
+order_status_code,order_status_name,status_category,is_terminal,display_order
+PENDING,Pending,Open,false,1
+CONFIRMED,Confirmed,Open,false,2
+PROCESSING,Processing,Open,false,3
+SHIPPED,Shipped,In Transit,false,4
+DELIVERED,Delivered,Complete,true,5
+CANCELLED,Cancelled,Closed,true,6
+RETURNED,Returned,Closed,true,7
+REFUNDED,Refunded,Closed,true,8
+ON_HOLD,On Hold,Open,false,9
+BACKORDERED,Backordered,Open,false,10

@@ -1,0 +1,171 @@
+version: 2
+
+# =============================================================================
+# Source Definitions — Raw Vault Landing Tables
+#
+# These sources point to the raw landing tables in RAW_VAULT.ECOMMERCE
+# populated by Snowpipe / COPY INTO from external stages.
+# =============================================================================
+
+sources:
+  - name: raw_ecommerce
+    description: "E-Commerce source system — batch file ingestion from S3"
+    database: "{{ var('raw_vault_database') }}"
+    schema: ECOMMERCE
+    loader: "Snowpipe / COPY INTO"
+    tags: ["source", "ecommerce", "bronze"]
+
+    loaded_at_field: _LOADED_AT
+
+    freshness:
+      warn_after:
+        count: 12
+        period: hour
+      error_after:
+        count: 24
+        period: hour
+
+    tables:
+      - name: RAW_CUSTOMERS
+        description: "Raw customer records from E-Commerce platform"
+        identifier: RAW_CUSTOMERS
+        columns:
+          - name: CUSTOMER_ID
+            description: "Natural business key — unique customer identifier"
+            tests:
+              - not_null
+              - unique
+          - name: FIRST_NAME
+            description: "Customer first name (PII — masked for non-privileged roles)"
+          - name: LAST_NAME
+            description: "Customer last name (PII — masked for non-privileged roles)"
+          - name: EMAIL
+            description: "Customer email address (PII — masked for non-privileged roles)"
+            tests:
+              - not_null
+          - name: PHONE
+            description: "Customer phone number (PII — masked for non-privileged roles)"
+          - name: DATE_OF_BIRTH
+            description: "Customer date of birth (PII — year only for analysts)"
+          - name: GENDER
+            description: "Customer gender"
+          - name: COUNTRY_CODE
+            description: "ISO 3166-1 alpha-2 country code"
+          - name: CITY
+            description: "Customer city"
+          - name: STATE
+            description: "Customer state / province"
+          - name: POSTAL_CODE
+            description: "Postal / ZIP code"
+          - name: REGISTRATION_DATE
+            description: "Account registration timestamp"
+          - name: CUSTOMER_SEGMENT
+            description: "Customer segment classification (e.g., B2B, B2C, Enterprise)"
+          - name: LOYALTY_TIER
+            description: "Loyalty program tier (e.g., Bronze, Silver, Gold, Platinum)"
+          - name: _LOADED_AT
+            description: "Snowflake ingestion timestamp"
+          - name: _FILE_NAME
+            description: "Source file name from stage metadata"
+          - name: _FILE_ROW_NUMBER
+            description: "Row number within source file"
+
+      - name: RAW_ORDERS
+        description: "Raw order records from E-Commerce platform"
+        identifier: RAW_ORDERS
+        columns:
+          - name: ORDER_ID
+            description: "Natural business key — unique order identifier"
+            tests:
+              - not_null
+              - unique
+          - name: CUSTOMER_ID
+            description: "FK to customer — used for LINK_CUSTOMER_ORDER"
+            tests:
+              - not_null
+          - name: ORDER_DATE
+            description: "Order placement timestamp"
+            tests:
+              - not_null
+          - name: ORDER_STATUS
+            description: "Current order status (PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED)"
+          - name: TOTAL_AMOUNT
+            description: "Total order amount including tax, excluding discount"
+          - name: CURRENCY_CODE
+            description: "ISO 4217 currency code"
+          - name: PAYMENT_METHOD
+            description: "Payment method used (CREDIT_CARD, DEBIT_CARD, PAYPAL, etc.)"
+          - name: SHIPPING_METHOD
+            description: "Shipping method (STANDARD, EXPRESS, OVERNIGHT)"
+          - name: SHIPPING_ADDRESS
+            description: "Shipping address (PII)"
+          - name: BILLING_ADDRESS
+            description: "Billing address (PII)"
+          - name: DISCOUNT_AMOUNT
+            description: "Discount amount applied"
+          - name: TAX_AMOUNT
+            description: "Tax amount"
+          - name: FULFILLMENT_DATE
+            description: "Order fulfillment / delivery timestamp"
+
+      - name: RAW_PRODUCTS
+        description: "Raw product catalog from E-Commerce platform"
+        identifier: RAW_PRODUCTS
+        columns:
+          - name: PRODUCT_ID
+            description: "Natural business key — unique product identifier"
+            tests:
+              - not_null
+              - unique
+          - name: PRODUCT_NAME
+            description: "Product display name"
+            tests:
+              - not_null
+          - name: CATEGORY
+            description: "Primary product category"
+          - name: SUBCATEGORY
+            description: "Product subcategory"
+          - name: BRAND
+            description: "Product brand name"
+          - name: UNIT_PRICE
+            description: "Current retail unit price"
+          - name: COST_PRICE
+            description: "Product cost price (CONFIDENTIAL)"
+          - name: WEIGHT_KG
+            description: "Product weight in kilograms"
+          - name: IS_ACTIVE
+            description: "Whether product is currently active in catalog"
+          - name: CREATED_AT
+            description: "Product creation timestamp in source system"
+          - name: UPDATED_AT
+            description: "Last update timestamp in source system"
+
+      - name: RAW_ORDER_ITEMS
+        description: "Raw order line items from E-Commerce platform"
+        identifier: RAW_ORDER_ITEMS
+        columns:
+          - name: ORDER_ITEM_ID
+            description: "Natural business key — unique line item identifier"
+            tests:
+              - not_null
+              - unique
+          - name: ORDER_ID
+            description: "FK to order — used for LINK_ORDER_PRODUCT"
+            tests:
+              - not_null
+          - name: PRODUCT_ID
+            description: "FK to product — used for LINK_ORDER_PRODUCT"
+            tests:
+              - not_null
+          - name: QUANTITY
+            description: "Quantity ordered"
+            tests:
+              - not_null
+          - name: UNIT_PRICE
+            description: "Unit price at time of order"
+            tests:
+              - not_null
+          - name: DISCOUNT_PERCENT
+            description: "Line-item discount percentage"
+          - name: LINE_TOTAL
+            description: "Calculated line total (quantity * unit_price * (1 - discount))"

@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: sat_customer_details
+    description: >
+      Satellite for customer contact and address details.
+      SCD Type 2 — new row on every attribute change detected via hash diff.
+    columns:
+      - name: HK_CUSTOMER
+        description: "FK hash key → HUB_CUSTOMER"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_customer')
+              field: HK_CUSTOMER
+      - name: HASH_DIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_customer_demographics
+    description: >
+      Satellite for customer demographic and segmentation data.
+      Separated from details due to different change velocity.
+    columns:
+      - name: HK_CUSTOMER
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_customer')
+              field: HK_CUSTOMER
+      - name: HASH_DIFF
+        tests:
+          - not_null
+
+  - name: sat_order_details
+    description: >
+      Satellite for order status, shipping, and fulfilment details.
+      Tracks order lifecycle transitions.
+    columns:
+      - name: HK_ORDER
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: HK_ORDER
+      - name: HASH_DIFF
+        tests:
+          - not_null
+
+  - name: sat_order_financials
+    description: >
+      Satellite for order financial attributes (amounts, currency, payment).
+      Separated from details — financials rarely change post-placement.
+    columns:
+      - name: HK_ORDER
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: HK_ORDER
+      - name: HASH_DIFF
+        tests:
+          - not_null
+
+  - name: sat_product_details
+    description: >
+      Satellite for product catalog attributes (name, category, brand, weight).
+    columns:
+      - name: HK_PRODUCT
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_product')
+              field: HK_PRODUCT
+      - name: HASH_DIFF
+        tests:
+          - not_null
+
+  - name: sat_product_pricing
+    description: >
+      Satellite for product pricing. Separated because price changes
+      are more frequent than catalog attribute changes.
+    columns:
+      - name: HK_PRODUCT
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_product')
+              field: HK_PRODUCT
+      - name: HASH_DIFF
+        tests:
+          - not_null

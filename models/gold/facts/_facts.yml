@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: "Fact table — one row per order with measures and lifecycle attributes"
+    columns:
+      - name: ORDER_SK
+        tests: [unique, not_null]
+      - name: ORDER_ID
+        tests: [unique, not_null]
+      - name: TOTAL_AMOUNT
+        tests: [not_null]
+      - name: ORDER_DATE
+        tests: [not_null]
+
+  - name: fct_order_items
+    description: "Fact table — one row per order line item"
+    columns:
+      - name: ORDER_ITEM_SK
+        tests: [unique, not_null]
+      - name: ORDER_ITEM_ID
+        tests: [unique, not_null]
+      - name: QUANTITY
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 10000

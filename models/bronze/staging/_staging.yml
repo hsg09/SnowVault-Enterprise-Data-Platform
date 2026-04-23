@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: stg_ecommerce__customers
+    description: >
+      Pre-vault staging model for customers. Cleanses raw data, generates
+      HK_CUSTOMER hash key, and produces two hash diffs for separate
+      satellites (details vs demographics).
+    columns:
+      - name: HK_CUSTOMER
+        description: "SHA-256 hash key on CUSTOMER_ID"
+        tests:
+          - not_null
+      - name: CUSTOMER_ID
+        description: "Cleaned business key"
+        tests:
+          - not_null
+
+  - name: stg_ecommerce__orders
+    description: >
+      Pre-vault staging model for orders. Generates HK_ORDER, HK_CUSTOMER,
+      composite link key HK_LINK_CUSTOMER_ORDER, and two hash diffs.
+    columns:
+      - name: HK_ORDER
+        description: "SHA-256 hash key on ORDER_ID"
+        tests:
+          - not_null
+      - name: HK_CUSTOMER
+        description: "SHA-256 hash key on CUSTOMER_ID (FK to HUB_CUSTOMER)"
+        tests:
+          - not_null
+      - name: HK_LINK_CUSTOMER_ORDER
+        description: "Composite hash key for LINK_CUSTOMER_ORDER"
+        tests:
+          - not_null
+
+  - name: stg_ecommerce__products
+    description: >
+      Pre-vault staging model for products. Generates HK_PRODUCT and
+      splits into details vs pricing satellites.
+    columns:
+      - name: HK_PRODUCT
+        description: "SHA-256 hash key on PRODUCT_ID"
+        tests:
+          - not_null
+      - name: PRODUCT_ID
+        description: "Cleaned business key"
+        tests:
+          - not_null
+
+  - name: stg_ecommerce__order_items
+    description: >
+      Pre-vault staging model for order line items. Generates hub keys,
+      composite link key (order+product+item), and computes line totals.
+    columns:
+      - name: HK_LINK_ORDER_PRODUCT
+        description: "Composite hash key for LINK_ORDER_PRODUCT"
+        tests:
+          - not_null
+      - name: HK_ORDER
+        description: "SHA-256 hash key on ORDER_ID"
+        tests:
+          - not_null
+      - name: HK_PRODUCT
+        description: "SHA-256 hash key on PRODUCT_ID"
+        tests:
+          - not_null

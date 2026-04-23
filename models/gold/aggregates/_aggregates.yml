@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: agg_monthly_revenue
+    description: "Aggregate — monthly revenue with customer segmentation"
+    columns:
+      - name: YEAR_MONTH
+        tests: [not_null]
+      - name: GROSS_REVENUE
+        tests: [not_null]
+      - name: TOTAL_ORDERS
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+
+  - name: agg_customer_ltv
+    description: "Aggregate — customer lifetime value with purchase frequency and predictions"
+    columns:
+      - name: CUSTOMER_SK
+        tests: [unique, not_null]
+      - name: LIFETIME_SPEND
+        tests: [not_null]

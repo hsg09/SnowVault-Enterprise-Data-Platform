@@ -1,0 +1,39 @@
+version: 2
+
+# =============================================================================
+# Source Definitions — CDC Streams
+# Sources for Snowflake Streams (CDC) on raw landing tables.
+# =============================================================================
+
+sources:
+  - name: cdc_ecommerce
+    description: "CDC streams on E-Commerce raw landing tables (Snowflake Streams)"
+    database: "{{ var('raw_vault_database') }}"
+    schema: ECOMMERCE
+    tags: ["source", "cdc", "streaming"]
+
+    tables:
+      - name: STREAM_CUSTOMERS
+        description: "CDC stream on RAW_CUSTOMERS — captures inserts, updates, deletes"
+        identifier: STREAM_CUSTOMERS
+        columns:
+          - name: CUSTOMER_ID
+            description: "Customer business key from CDC stream"
+          - name: METADATA$ACTION
+            description: "CDC action type — INSERT, DELETE"
+          - name: METADATA$ISUPDATE
+            description: "TRUE if this is an UPDATE (paired DELETE + INSERT)"
+          - name: METADATA$ROW_ID
+            description: "Unique row identifier in the stream"
+
+      - name: STREAM_ORDERS
+        description: "CDC stream on RAW_ORDERS"
+        identifier: STREAM_ORDERS
+
+      - name: STREAM_PRODUCTS
+        description: "CDC stream on RAW_PRODUCTS"
+        identifier: STREAM_PRODUCTS
+
+      - name: STREAM_ORDER_ITEMS
+        description: "CDC stream on RAW_ORDER_ITEMS"
+        identifier: STREAM_ORDER_ITEMS

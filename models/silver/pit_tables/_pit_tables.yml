@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: pit_customer
+    description: >
+      Point-In-Time table for customers. Pre-computed lookup that stores
+      the correct satellite load datetime for each customer at each point.
+    columns:
+      - name: HK_CUSTOMER
+        tests:
+          - not_null
+      - name: PIT_LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: pit_order
+    description: >
+      Point-In-Time table for orders. Pre-computed lookup for
+      SAT_ORDER_DETAILS and SAT_ORDER_FINANCIALS.
+    columns:
+      - name: HK_ORDER
+        tests:
+          - not_null
+      - name: PIT_LOAD_DATETIME
+        tests:
+          - not_null

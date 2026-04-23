@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: link_customer_order
+    description: >
+      Data Vault 2.0 Link: Customer ↔ Order relationship.
+      One row per unique (CUSTOMER_ID, ORDER_ID) pair.
+    columns:
+      - name: HK_LINK_CUSTOMER_ORDER
+        description: "Composite SHA-256 hash key"
+        tests:
+          - unique
+          - not_null
+      - name: HK_CUSTOMER
+        description: "FK hash key → HUB_CUSTOMER"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_customer')
+              field: HK_CUSTOMER
+      - name: HK_ORDER
+        description: "FK hash key → HUB_ORDER"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: HK_ORDER
+
+  - name: link_order_product
+    description: >
+      Data Vault 2.0 Link: Order ↔ Product (via Order Item).
+      Three-way link with dependent child key ORDER_ITEM_ID.
+    columns:
+      - name: HK_LINK_ORDER_PRODUCT
+        description: "Composite SHA-256 hash key"
+        tests:
+          - unique
+          - not_null
+      - name: HK_ORDER
+        description: "FK hash key → HUB_ORDER"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: HK_ORDER
+      - name: HK_PRODUCT
+        description: "FK hash key → HUB_PRODUCT"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_product')
+              field: HK_PRODUCT
+      - name: ORDER_ITEM_ID
+        description: "Dependent child key — line item identifier"
+        tests:
+          - not_null

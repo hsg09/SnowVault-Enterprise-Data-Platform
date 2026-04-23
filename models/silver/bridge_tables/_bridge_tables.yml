@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: bridge_customer_order
+    description: >
+      Bridge table for Customer ↔ Order path. Pre-joins link with effectivity
+      satellite for efficient downstream navigation.
+    columns:
+      - name: HK_LINK_CUSTOMER_ORDER
+        tests:
+          - unique
+          - not_null
+      - name: HK_CUSTOMER
+        tests:
+          - not_null
+      - name: HK_ORDER
+        tests:
+          - not_null

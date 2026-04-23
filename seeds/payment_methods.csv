@@ -1,0 +1,11 @@
+payment_method_code,payment_method_name,payment_type,is_digital
+CREDIT_CARD,Credit Card,Card,true
+DEBIT_CARD,Debit Card,Card,true
+PAYPAL,PayPal,Digital Wallet,true
+APPLE_PAY,Apple Pay,Digital Wallet,true
+GOOGLE_PAY,Google Pay,Digital Wallet,true
+BANK_TRANSFER,Bank Transfer,Bank,true
+WIRE_TRANSFER,Wire Transfer,Bank,true
+COD,Cash on Delivery,Cash,false
+GIFT_CARD,Gift Card,Prepaid,true
+CRYPTO,Cryptocurrency,Digital Currency,true

@@ -1,0 +1,56 @@
+# =============================================================================
+# Pre-commit hooks — Data Vault 2.0 Snowflake Data Platform
+#
+# Install:  pip install pre-commit && pre-commit install
+# Run all:  pre-commit run --all-files
+# =============================================================================
+
+repos:
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # SQL linting (SQLFluff)
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 3.2.5
+    hooks:
+      - id: sqlfluff-lint
+        files: ^(models|macros|analyses|snapshots)/
+        args: [--dialect, snowflake]
+        additional_dependencies: ['dbt-snowflake>=1.11.0', 'sqlfluff-templater-dbt']
+      - id: sqlfluff-fix
+        files: ^(models|macros|analyses|snapshots)/
+        args: [--dialect, snowflake, --force]
+        additional_dependencies: ['dbt-snowflake>=1.11.0', 'sqlfluff-templater-dbt']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-d, "{extends: relaxed, rules: {line-length: {max: 200}}}"]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+
+  # Terraform formatting
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_docs

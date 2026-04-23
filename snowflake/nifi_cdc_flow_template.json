@@ -1,0 +1,176 @@
+{
+  "template_name": "data_vault_cdc_postgresql_to_snowflake",
+  "template_version": "1.0.0",
+  "description": "Snowflake Openflow NiFi CDC Pipeline — PostgreSQL WAL to Snowpipe Streaming",
+  "author": "data-platform-team",
+  "created_at": "2026-04-23",
+  "flow_definition": {
+    "processors": [
+      {
+        "id": "proc-001",
+        "type": "org.apache.nifi.processors.cdc.CaptureChangePostgreSQL",
+        "name": "CaptureChangePostgreSQL",
+        "properties": {
+          "CDC Connection Pool": "${pg.connection.pool}",
+          "CDC Slot Name": "snowflake_cdc_slot",
+          "CDC Publication Name": "snowflake_cdc_pub",
+          "CDC Tables": "public.customers,public.orders,public.products,public.order_items",
+          "CDC Connection Timeout": "30 seconds",
+          "CDC Initial Snapshot": "true",
+          "CDC Output Format": "JSON"
+        },
+        "scheduling": {
+          "strategy": "TIMER_DRIVEN",
+          "period": "1 sec"
+        },
+        "position": {"x": 200, "y": 200}
+      },
+      {
+        "id": "proc-002",
+        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+        "name": "RouteByTable",
+        "properties": {
+          "customers": "${cdc.table.name:equals('customers')}",
+          "orders": "${cdc.table.name:equals('orders')}",
+          "products": "${cdc.table.name:equals('products')}",
+          "order_items": "${cdc.table.name:equals('order_items')}"
+        },
+        "position": {"x": 600, "y": 200}
+      },
+      {
+        "id": "proc-003",
+        "type": "org.apache.nifi.processors.standard.JoltTransformJSON",
+        "name": "TransformCDCPayload",
+        "properties": {
+          "Jolt Transformation DSL": "chain",
+          "Jolt Specification": "[{\"operation\":\"shift\",\"spec\":{\"operation\":\"CDC_OPERATION\",\"before\":\"RECORD_BEFORE\",\"after\":\"RECORD_AFTER\",\"timestamp\":\"CDC_TIMESTAMP\",\"transaction_id\":\"TRANSACTION_ID\",\"lsn\":\"LSN\",\"source\":{\"db\":\"SOURCE_DATABASE\",\"schema\":\"SOURCE_SCHEMA\",\"table\":\"SOURCE_TABLE\"}}}]"
+        },
+        "position": {"x": 600, "y": 500}
+      },
+      {
+        "id": "proc-004",
+        "type": "org.apache.nifi.snowflake.PutSnowpipeStreaming",
+        "name": "PutSnowpipeStreaming",
+        "properties": {
+          "Snowflake Account URL": "${snowflake.account.url}",
+          "Snowflake User": "OPENFLOW_SVC_USER",
+          "Snowflake Private Key": "${snowflake.private.key}",
+          "Snowflake Role": "LOADER",
+          "Snowflake Database": "RAW_VAULT",
+          "Snowflake Schema": "CDC",
+          "Snowflake Table": "RAW_CDC_EVENTS",
+          "Channel Name": "openflow-cdc-${cdc.table.name}",
+          "Batch Size": "1000",
+          "Flush Interval": "5 seconds"
+        },
+        "position": {"x": 600, "y": 800}
+      },
+      {
+        "id": "proc-005",
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "name": "LogCDCMetrics",
+        "properties": {
+          "Log Level": "INFO",
+          "Log Payload": "false",
+          "Attributes to Log": "cdc.table.name,cdc.operation,cdc.lsn,cdc.timestamp"
+        },
+        "position": {"x": 1000, "y": 800}
+      }
+    ],
+    "connections": [
+      {
+        "source": "proc-001",
+        "destination": "proc-002",
+        "relationships": ["success"]
+      },
+      {
+        "source": "proc-002",
+        "destination": "proc-003",
+        "relationships": ["customers", "orders", "products", "order_items"]
+      },
+      {
+        "source": "proc-003",
+        "destination": "proc-004",
+        "relationships": ["success"]
+      },
+      {
+        "source": "proc-004",
+        "destination": "proc-005",
+        "relationships": ["success"]
+      },
+      {
+        "source": "proc-004",
+        "destination": "proc-005",
+        "relationships": ["failure"],
+        "back_pressure": {
+          "data_size_threshold": "100 MB",
+          "object_threshold": 50000
+        }
+      }
+    ],
+    "controller_services": [
+      {
+        "id": "cs-001",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "name": "PostgreSQL CDC Connection Pool",
+        "properties": {
+          "Database Connection URL": "${pg.jdbc.url}",
+          "Database Driver Class Name": "org.postgresql.Driver",
+          "Database User": "${pg.user}",
+          "Password": "${pg.password}",
+          "Max Wait Time": "500 millis",
+          "Max Total Connections": "5"
+        }
+      }
+    ],
+    "parameter_contexts": [
+      {
+        "name": "CDC Pipeline Parameters",
+        "parameters": {
+          "pg.jdbc.url": {
+            "description": "PostgreSQL JDBC URL for CDC source",
+            "sensitive": false,
+            "value": "jdbc:postgresql://your-pg-host:5432/your_database?replication=database"
+          },
+          "pg.user": {
+            "description": "PostgreSQL replication user",
+            "sensitive": false,
+            "value": "cdc_replication_user"
+          },
+          "pg.password": {
+            "description": "PostgreSQL replication password",
+            "sensitive": true,
+            "value": ""
+          },
+          "pg.connection.pool": {
+            "description": "Reference to PostgreSQL connection pool controller service",
+            "sensitive": false,
+            "value": "cs-001"
+          },
+          "snowflake.account.url": {
+            "description": "Snowflake account URL",
+            "sensitive": false,
+            "value": "https://your-account.snowflakecomputing.com"
+          },
+          "snowflake.private.key": {
+            "description": "Snowflake RSA private key (PEM)",
+            "sensitive": true,
+            "value": ""
+          }
+        }
+      }
+    ]
+  },
+  "deployment": {
+    "method": "openflow_rest_api",
+    "instructions": [
+      "1. Navigate to Snowflake Openflow UI → Flow Designer",
+      "2. Import this template via 'Upload Template' button",
+      "3. Configure Parameter Context with actual credentials",
+      "4. Enable Controller Services (PostgreSQL Connection Pool)",
+      "5. Start all processors",
+      "6. Verify data flowing to RAW_VAULT.CDC.RAW_CDC_EVENTS"
+    ],
+    "api_deployment_curl": "curl -X POST 'https://<account>.snowflakecomputing.com/api/v2/openflow/flows' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d @nifi_cdc_flow_template.json"
+  }
+}

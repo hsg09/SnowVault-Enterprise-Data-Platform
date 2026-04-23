@@ -1,0 +1,27 @@
+version: 2
+
+# =============================================================================
+# Source Definitions — External APIs / Streaming
+# Placeholder for external API and Kafka Snowpipe Streaming sources.
+# =============================================================================
+
+sources:
+  - name: external_apis
+    description: "External API and Kafka streaming ingestion targets"
+    database: "{{ var('raw_vault_database') }}"
+    schema: STREAMING
+    tags: ["source", "streaming", "api"]
+
+    tables:
+      - name: RAW_KAFKA_EVENTS
+        description: >
+          Kafka events landed via Snowpipe Streaming.
+          Semi-structured VARIANT column containing event payloads.
+        identifier: RAW_KAFKA_EVENTS
+        columns:
+          - name: RECORD_CONTENT
+            description: "Raw VARIANT payload from Kafka topic"
+          - name: RECORD_METADATA
+            description: "Kafka metadata (topic, partition, offset, timestamp)"
+          - name: _LOADED_AT
+            description: "Snowflake ingestion timestamp"

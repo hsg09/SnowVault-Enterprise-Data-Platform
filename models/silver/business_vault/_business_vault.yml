@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: bv_customer_classification
+    description: >
+      Business Vault: Customer classification with RFM scoring, LTV tier,
+      churn risk, and segment labels. Derived from Raw Vault entities
+      using enterprise business rules.
+    columns:
+      - name: HK_CUSTOMER
+        tests:
+          - unique
+          - not_null
+      - name: RFM_SEGMENT
+        tests:
+          - accepted_values:
+              values: ['CHAMPION', 'LOYAL', 'BIG_SPENDER', 'NEW_CUSTOMER', 'AT_RISK', 'LOST', 'REGULAR']
+      - name: LTV_TIER
+        tests:
+          - accepted_values:
+              values: ['PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'NEW']
+      - name: CHURN_RISK
+        tests:
+          - accepted_values:
+              values: ['HIGH', 'MEDIUM', 'LOW', 'ACTIVE']
+
+  - name: bv_order_lifecycle
+    description: >
+      Business Vault: Order lifecycle with status transitions, SLA compliance,
+      net amount computation, and lifecycle stage classification.
+    columns:
+      - name: HK_ORDER
+        tests:
+          - unique
+          - not_null
+      - name: LIFECYCLE_STAGE
+        tests:
+          - accepted_values:
+              values: ['COMPLETE', 'IN_TRANSIT', 'PROCESSING', 'AWAITING_CONFIRMATION', 'CANCELLED', 'RETURNED', 'REFUNDED', 'UNKNOWN']

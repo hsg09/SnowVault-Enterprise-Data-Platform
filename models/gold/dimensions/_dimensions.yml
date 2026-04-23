@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Dimension — one row per customer (current state) with full attributes + classifications"
+    columns:
+      - name: CUSTOMER_SK
+        tests: [unique, not_null]
+      - name: CUSTOMER_ID
+        tests: [unique, not_null]
+      - name: FULL_NAME
+        tests: [not_null]
+
+  - name: dim_product
+    description: "Dimension — one row per product with catalog, pricing, and margin"
+    columns:
+      - name: PRODUCT_SK
+        tests: [unique, not_null]
+      - name: PRODUCT_ID
+        tests: [unique, not_null]
+
+  - name: dim_date
+    description: "Dimension — calendar date spine (2020–2030) with fiscal year support"
+    columns:
+      - name: DATE_KEY
+        tests: [unique, not_null]
+      - name: DATE_DAY
+        tests: [unique, not_null]

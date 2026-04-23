@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: eff_sat_customer_order
+    description: >
+      Effectivity Satellite on LINK_CUSTOMER_ORDER. Tracks relationship
+      validity — marks orders as inactive when cancelled/returned/refunded.
+    columns:
+      - name: HK_LINK_CUSTOMER_ORDER
+        description: "FK → LINK_CUSTOMER_ORDER"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('link_customer_order')
+              field: HK_LINK_CUSTOMER_ORDER
+      - name: IS_ACTIVE
+        description: "TRUE if relationship is currently active"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+      - name: EFFECTIVE_FROM
+        description: "Start of validity window (order date)"
+        tests:
+          - not_null
+      - name: EFFECTIVE_TO
+        description: "End of validity window (9999-12-31 if still active)"
+        tests:
+          - not_null

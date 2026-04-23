@@ -1,0 +1,16 @@
+category_id,category_name,parent_category,department
+1,Electronics,,Technology
+2,Smartphones,Electronics,Technology
+3,Laptops,Electronics,Technology
+4,Accessories,Electronics,Technology
+5,Clothing,,Fashion
+6,Men's Clothing,Clothing,Fashion
+7,Women's Clothing,Clothing,Fashion
+8,Footwear,Clothing,Fashion
+9,Home & Garden,,Home
+10,Furniture,Home & Garden,Home
+11,Kitchen,Home & Garden,Home
+12,Sports & Outdoors,,Sports
+13,Fitness,Sports & Outdoors,Sports
+14,Camping,Sports & Outdoors,Sports
+15,Books & Media,,Entertainment
