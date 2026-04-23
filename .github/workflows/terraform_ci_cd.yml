@@ -44,6 +44,7 @@ env:
   TF_VAR_snowflake_account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
   TF_VAR_snowflake_user: ${{ secrets.TF_SNOWFLAKE_USER }}
   TF_VAR_snowflake_private_key_path: ${{ secrets.TF_SNOWFLAKE_PRIVATE_KEY_PATH }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 # =============================================================================
 # Jobs
