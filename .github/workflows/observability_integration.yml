@@ -27,7 +27,7 @@ env:
   MONTE_CARLO_API_KEY: ${{ secrets.MONTE_CARLO_API_KEY }}
   MONTE_CARLO_API_SECRET: ${{ secrets.MONTE_CARLO_API_SECRET }}
   PYTHON_VERSION: '3.11'
-
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 jobs:
 
   observability_check:
