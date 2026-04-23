@@ -43,23 +43,23 @@ provider "snowflake" {
 # =============================================================================
 
 module "databases" {
-  source      = "../modules/databases"
+  source      = \"../../modules/databases"
   environment = var.environment
 }
 
 module "warehouses" {
-  source      = "../modules/warehouses"
+  source      = \"../../modules/warehouses"
   environment = var.environment
 }
 
 module "rbac" {
-  source      = "../modules/rbac"
+  source      = \"../../modules/rbac"
   environment = var.environment
   depends_on  = [module.databases, module.warehouses]
 }
 
 module "storage_integrations" {
-  source             = "../modules/storage_integrations"
+  source             = \"../../modules/storage_integrations"
   environment        = var.environment
   aws_s3_role_arn    = var.aws_s3_role_arn
   azure_tenant_id    = var.azure_tenant_id
@@ -68,13 +68,13 @@ module "storage_integrations" {
 }
 
 module "network_policies" {
-  source      = "../modules/network_policies"
+  source      = \"../../modules/network_policies"
   environment = var.environment
   allowed_ips = var.allowed_ip_list
 }
 
 module "replication" {
-  source              = "../modules/replication"
+  source              = \"../../modules/replication"
   environment         = var.environment
   secondary_accounts  = var.secondary_accounts
   replication_schedule = var.replication_schedule
@@ -82,14 +82,14 @@ module "replication" {
 }
 
 module "resource_monitors" {
-  source      = "../modules/resource_monitors"
+  source      = \"../../modules/resource_monitors"
   environment = var.environment
   credit_quota_monthly = var.credit_quota_monthly
   depends_on  = [module.warehouses]
 }
 
 module "governance" {
-  source      = "../modules/governance"
+  source      = \"../../modules/governance"
   environment = var.environment
   depends_on  = [module.databases, module.rbac]
 }
